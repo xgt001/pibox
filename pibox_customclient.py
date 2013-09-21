@@ -1,29 +1,10 @@
-
-'''
-
-cal = subprocess("curl -d "username=xgt008@gmail.com&password=886677" http://10.42.0.84:8000/api2/auth-token/")
-
-tokenjson = simplejson.loads(curl_op1)
-
-
-token = tokenjson["token"]
-
-#replace with "token"
-
-data = simplejson.loads(curl_op2)
-
-
-print "Your Usage"+data["usage"]
-
-print "Your Total Space"+data["total"]
-
-print "Your User ID"+data["email"]
-
-
-'''
-
 import subprocess
 import simplejson
+import requests
+import logging.config
+import time
+import httplib, mimetypes
+import urlparse
 
 def curl(*args):
         curl_path = '/usr/bin/curl'
@@ -36,39 +17,77 @@ def curl(*args):
                      stdout=subprocess.PIPE).communicate()[0]
         return curl_result
 
-token_json = curl('-d','username=xgt008@gmail.com&password=886677','http://10.42.0.84:8000/api2/auth-token/')
+def post_multipart(host, selector, fields, files):
+    
+    content_type, body = encode_multipart_formdata(fields, files)
+    h = httplib.HTTP(host)
+    h.putrequest('POST', selector)
+    h.putheader('content-type', content_type)
+    h.putheader('content-length', str(len(body)))
+    h.endheaders()
+    h.send(body)
+    errcode, errmsg, headers = h.getreply()
+    print errcode, errmsg, headers
+    return h.file.read()
 
-tokenparser = simplejson.loads(token_json)
+def encode_multipart_formdata(fields, files):
+    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
+    CRLF = '\r\n'
+    L = []
+    for (key, value) in fields:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"' % key)
+        L.append('')
+        L.append(value)
+    for (key, filename, value) in files:
+        L.append('--' + BOUNDARY)
+        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+        L.append('Content-Type: %s' % get_content_type(filename))
+        L.append('')
+        L.append(value)
+    L.append('--' + BOUNDARY + '--')
+    L.append('')
+    body = CRLF.join(L)
+    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+    return content_type, body
 
-token_string = tokenparser["token"]
+def get_content_type(filename):
+    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 
-list_json = curl('-H','Authorization: Token '+token_string,'-H','Accept: application/json; indent=4','http://10.42.0.84:8000/api2/repos/')
+def get_upload_link(domain, uri):
+    conn = httplib.HTTPConnection(domain)
+    headers = {'Host': domain}
+    headers['Authorization'] = 'Token '+token_string
+    conn.request("GET", uri, None, headers)
+    return conn.getresponse().read()
 
-#print list_json
+if __name__ == '__main__':
 
-#JSON DECODING to BE DONE
+    token_json = curl('-d','username=xgt008@gmail.com&password=886677','http://10.42.0.84:8000/api2/auth-token/')
 
+    tokenparser = simplejson.loads(token_json)
 
-list_items = simplejson.loads(list_json)
-print "Your files : \n"
-for each_item in list_items:
-	print each_item["name"]+"\t"
-	print each_item['size']
-	print "\t \n"
+    token_string = tokenparser["token"]
 
+    list_json = curl('-H','Authorization: Token '+token_string,'-H','Accept: application/json; indent=4','http://10.42.0.84:8000/api2/repos/')
 
-'''
+    list_items = simplejson.loads(list_json)
+    print "Your Repositories: \n"
+    print "Name"+"\t"+"RepoID"+5*"\t"+"Size"
+    for each_item in list_items:
+        print each_item["name"]+"\t"+each_item['id']+'\t'+str(each_item['size'])+"\t \n"
 
+    print token_string
+    repo = '0e1fcd92-ff26-4382-af21-c2015017a850'
 
+    upload_link = curl('-H','Authorization: Token '+token_string,'http://10.42.0.84:8000/api2/repos/0e1fcd92-ff26-4382-af21-c2015017a850/upload-link/')
 
-curl  -v  -H 'Authorization: Token f2210dacd9c6ccb8133606d94ff8e61d99b477fd' -H 'Accept: application/json; charset=utf-8; indent=4'
+    upload_link = upload_link[1:len(upload_link)-1]
+    
+    urlparts = urlparse.urlsplit(upload_link)
 
- https://cloud.seafile.com/api2/repos/dae8cecc-2359-4d33-aa42-01b7846c4b32/file/?p=/foo.c
+    fields = [('parent_dir', '/')]
 
-
-http://10.42.0.84:8000/api2/repos/21c5c154-a84f-4025-942e-f8bc16c402b6/file?p=/6E%20GRP%20TKT-BLR-BOM-BLR-26-28JUL-JPMC.pdf
-
-'http://10.42.0.84:8000/api2/repos/'+repo+'/file?p=/'+p
-
-http://10.42.0.84:8000/repo/21c5c154-a84f-4025-942e-f8bc16c402b6/files/?p=/6E%20GRP%20TKT-BLR-BOM-BLR-26-28JUL-JPMC.pdf
-'''
+    files = [('file', 'sample.pdf', open('sample.pdf').read())]
+    
+    post_multipart(urlparts[1], urlparts[2], fields, files)
