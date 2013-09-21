@@ -91,3 +91,12 @@ if __name__ == '__main__':
     files = [('file', 'sample.pdf', open('sample.pdf').read())]
     
     post_multipart(urlparts[1], urlparts[2], fields, files)
+
+
+    download_link = curl('-v','-H','Authorization: Token '+token_string,'-H','Accept: application/json; charset=utf-8; indent=4','http://10.42.0.84:8000/api2/repos/'+repo+'/file/?p=/sample.pdf')
+
+    download_link = download_link[1:len(download_link)-1]
+
+    print download_link
+
+    subprocess.call("wget "+download_link, shell=True)
