@@ -1,8 +1,5 @@
 import subprocess
 import simplejson
-import requests
-import logging.config
-import time
 import httplib, mimetypes
 import urlparse
 
