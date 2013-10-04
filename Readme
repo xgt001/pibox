@@ -1,4 +1,3 @@
-
 Custom Built Cloud Storage Solution for Raspberry Pi
 
 Author : Ganesh Hegde
@@ -6,4 +5,8 @@ Author : Ganesh Hegde
 License: BSD
 
 
+TODO: 
+1) A Chrome Webapp for a Universal Client
+2) Experimental FirefoxOS app
+3) Diversion from Seafile Base to implement own goals
 
